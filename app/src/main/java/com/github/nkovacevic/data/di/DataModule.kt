@@ -16,7 +16,6 @@
 
 package com.github.nkovacevic.data.di
 
-import android.app.Application
 import com.github.nkovacevic.data.remote.RemoteDataSource
 import com.github.nkovacevic.data.remote.RemoteDataSourceImpl
 import com.github.nkovacevic.data.remote.retrofit.RepositoryEndpoint
@@ -27,11 +26,16 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+
+private val json = Json {
+    ignoreUnknownKeys = true
+}
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -39,23 +43,28 @@ class DataModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(
-        application: Application
-    ): OkHttpClient {
+    fun provideOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                setLevel(HttpLoggingInterceptor.Level.BODY)
+            })
             .build()
     }
+
 
     @OptIn(ExperimentalSerializationApi::class)
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit {
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .client(okHttpClient)
-            .addConverterFactory(Json.asConverterFactory(MediaType.get("application/json")))
+            .baseUrl("https://api.github.com/")
+            .addConverterFactory(
+                json.asConverterFactory("application/json".toMediaType())
+            )
             .build()
     }
 

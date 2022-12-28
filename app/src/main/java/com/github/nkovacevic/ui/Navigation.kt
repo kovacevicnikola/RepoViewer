@@ -20,17 +20,35 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.github.nkovacevic.ui.repository.RepositoryScreen
+import androidx.navigation.navArgument
+import com.github.nkovacevic.ui.details.DetailsScreen
+import com.github.nkovacevic.ui.repositories.RepositoryScreen
 
 @Composable
 fun MainNavigation() {
     val navController = rememberNavController()
-
     NavHost(navController = navController, startDestination = "main") {
-        composable("main") { RepositoryScreen(modifier = Modifier.padding(16.dp)) }
-        // TODO: Add more destinations
+        composable("main") {
+            RepositoryScreen(
+                modifier = Modifier.padding(16.dp),
+                onItemClicked = {
+                    navController.navigate("details/${it.repositoryOwner.name}/${it.name}")
+                }
+            )
+        }
+        composable(
+            "details/{userName}/{repoName}",
+            arguments = listOf(navArgument("userName") { type = NavType.StringType },
+                navArgument("repoName") { type = NavType.StringType })
+        ) { backstackEntry ->
+            DetailsScreen(
+                userName = backstackEntry.arguments?.getString("userName")!!,
+                repoName = backstackEntry.arguments?.getString("repoName")!!
+            )
+        }
     }
 }
